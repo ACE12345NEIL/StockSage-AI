@@ -5,7 +5,7 @@ An intelligent stock analysis platform that combines technical analysis, financi
 Built using Flask, XGBoost, VADER Sentiment Analysis, and modern web technologies, StockSage AI enables users to analyze publicly traded stocks and receive data-driven BUY, HOLD, or SELL recommendations.
 
 ---
-
+![Dashboard](imag/landing.png)
 ## Features
 
 ### Technical Analysis
