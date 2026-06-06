@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StockSage AI — Mirror Analysis</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════════
+   MIRROR / GLASS DARK THEME – all IDs preserved
+═══════════════════════════════════════════════ */
+:root {
+  --bg-0:     #0A0D14;
+  --bg-1:     #10141F;
+  --bg-2:     #181E2C;
+  --bg-3:     #20273A;
+  --border:   rgba(120,160,220,0.2);
+  --border-s: rgba(120,160,220,0.35);
+  --accent:   #8AB3E0;
+  --accent-dim: #5A7DA0;
+  --green:    #6FCF97;
+  --red:      #E67A6F;
+  --blue:     #7A9EC0;
+  --purple:   #A088C0;
+  --teal:     #6DB0A0;
+  --text-1:   #EFF3FC;
+  --text-2:   #B0C8F0;
+  --text-3:   #7A8AB0;
+  --ff-head:  'Inter', sans-serif;
+  --ff-body:  'Inter', sans-serif;
+  --ff-mono:  'DM Mono', monospace;
+  --r:        12px;
+  --r-lg:     24px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: radial-gradient(circle at 20% 30%, #0B0F18, #030507);
+  color: var(--text-1);
+  font-family: var(--ff-body);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+  zoom: 150%
+}
+/* subtle mirror grid */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: radial-gradient(rgba(120,160,220,0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#app {
+  position: relative; z-index: 2;
+  max-width: 1400px; margin: 0 auto; padding: 24px 28px 60px;
+}
+
+/* header */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 0 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+}
+.logo-icon {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--accent), #3A5A7A);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.logo-text {
+  font-family: var(--ff-head); font-size: 1.6rem;
+  font-weight: 600; letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #FFF, var(--accent));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.logo-text span { color: var(--accent); background: none; }
+.header-badge {
+  background: rgba(90,130,180,0.2);
+  border: 1px solid var(--border-s);
+  border-radius: 60px; padding: 6px 16px;
+  font-size: 11px; color: var(--text-2); font-family: var(--ff-mono);
+  backdrop-filter: blur(4px);
+}
+
+/* search (no chips) */
+.search-section {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 40px 0 50px;
+}
+.search-eyebrow {
+  font-family: var(--ff-mono); font-size: 10px; letter-spacing: 0.2em;
+  color: var(--accent); text-transform: uppercase; margin-bottom: 16px;
+}
+.search-headline {
+  font-family: var(--ff-head); font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 12px;
+  font-weight: 500;
+}
+.search-headline em { font-style: italic; color: var(--accent); }
+.search-sub {
+  color: var(--text-2); font-size: 0.9rem; max-width: 480px; margin-bottom: 36px;
+}
+.search-bar {
+  display: flex; gap: 12px;
+  background: rgba(16,20,32,0.7); backdrop-filter: blur(8px);
+  border: 1px solid var(--border-s);
+  border-radius: 80px; padding: 6px 6px 6px 24px;
+  width: 100%; max-width: 560px;
+  transition: border-color 0.2s;
+}
+.search-bar:focus-within { border-color: var(--accent); }
+#search-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--text-1); font-family: var(--ff-body); font-size: 0.95rem;
+}
+#search-input::placeholder { color: var(--text-3); }
+#search-btn {
+  background: linear-gradient(105deg, var(--accent), #3A5A7A);
+  color: #0A0E16; border: none; border-radius: 60px;
+  padding: 10px 28px; font-weight: 500; font-size: 0.85rem;
+  cursor: pointer; transition: opacity 0.2s;
+  display: flex; align-items: center; gap: 8px;
+}
+#search-btn:hover { opacity: 0.85; }
+.period-selector { display: flex; gap: 10px; margin-top: 18px; }
+.period-btn {
+  background: rgba(20,28,44,0.6); border: 1px solid var(--border);
+  color: var(--text-2); border-radius: 40px; padding: 6px 16px;
+  font-size: 11px; font-family: var(--ff-mono); cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.period-btn.active {
+  background: rgba(90,140,200,0.25); border-color: var(--accent); color: var(--accent);
+}
+
+/* loading */
+#loading {
+  display: none; flex-direction: column; align-items: center;
+  justify-content: center; padding: 80px 0; gap: 20px;
+}
+.loader-ring {
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 3px solid var(--bg-3); border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-steps { text-align: center; }
+.loader-step {
+  font-family: var(--ff-mono); font-size: 11px; color: var(--text-3);
+  margin: 4px 0; opacity: 0; animation: fadeUp 0.5s ease forwards;
+}
+.loader-step.active { color: var(--accent); opacity: 1; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+#error-box {
+  display: none; background: rgba(230,122,111,0.1);
+  border: 1px solid rgba(230,122,111,0.3); border-radius: var(--r-lg);
+  padding: 18px 24px; color: var(--red); margin: 0 auto; max-width: 600px;
+  text-align: center;
+}
+
+/* dashboard */
+#dashboard { display: none; animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+.stock-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  flex-wrap: wrap; gap: 20px; margin-bottom: 32px;
+  background: rgba(16,20,32,0.6); backdrop-filter: blur(12px);
+  border-radius: var(--r-lg); padding: 28px 32px;
+  border: 1px solid var(--border);
+}
+.stock-name { font-family: var(--ff-head); font-size: 2rem; font-weight: 600; letter-spacing: -0.02em; }
+.stock-meta { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+.stock-ticker {
+  font-family: var(--ff-mono); font-size: 12px; color: var(--accent);
+  background: rgba(90,130,180,0.2); border: 1px solid var(--accent-dim);
+  border-radius: 30px; padding: 3px 12px;
+}
+.stock-sector { font-size: 11px; color: var(--text-3); }
+.stock-price-block { text-align: right; }
+.stock-price { font-family: var(--ff-head); font-size: 2.6rem; font-weight: 600; letter-spacing: -0.02em; }
+.stock-change { font-family: var(--ff-mono); font-size: 13px; margin-top: 4px; }
+.up { color: var(--green); }
+.down { color: var(--red); }
+.flat { color: var(--text-2); }
+
+/* cards grid */
+.cards { display: grid; gap: 16px; margin-bottom: 24px; }
+.cards-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 900px) { .cards-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 580px) { .cards-4 { grid-template-columns: 1fr; } }
+
+.card {
+  background: rgba(18,22,36,0.6); backdrop-filter: blur(8px);
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 20px 24px; transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--border-s); }
+.card-label {
+  font-size: 10px; font-family: var(--ff-mono); text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--text-3); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.card-value { font-size: 1.6rem; font-family: var(--ff-head); font-weight: 500; }
+.card-sub { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+
+/* gauge (unchanged structure) */
+.gauge-wrap { display: flex; align-items: center; gap: 16px; }
+.gauge-ring { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+.gauge-ring svg { transform: rotate(-90deg); }
+.gauge-ring-bg { fill: none; stroke: var(--bg-3); stroke-width: 6; }
+.gauge-ring-fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+.gauge-label {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-mono); font-size: 14px; font-weight: 500;
+}
+.gauge-info { display: flex; flex-direction: column; }
+.gauge-title { font-family: var(--ff-head); font-size: 1.3rem; font-weight: 500; }
+.gauge-cat { font-family: var(--ff-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; }
+
+/* rec card */
+.rec-card {
+  background: rgba(18,22,36,0.6); backdrop-filter: blur(8px);
+  border-radius: var(--r-lg); padding: 24px 32px;
+  display: flex; gap: 28px; align-items: center;
+  border: 1px solid var(--border); margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.rec-badge {
+  flex-shrink: 0; width: 100px; height: 100px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--ff-head); font-size: 1.8rem; font-style: italic;
+  border: 3px solid;
+}
+.rec-badge.BUY  { color: var(--green); border-color: var(--green); background: rgba(111,207,151,0.05); }
+.rec-badge.SELL { color: var(--red);   border-color: var(--red);   background: rgba(230,122,111,0.05); }
+.rec-badge.HOLD { color: var(--accent); border-color: var(--accent); background: rgba(138,179,224,0.05); }
+.rec-badge-sub { font-size: 9px; font-family: var(--ff-mono); margin-top: 4px; }
+.rec-conf-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.conf-bar { flex: 1; height: 5px; background: var(--bg-3); border-radius: 10px; overflow: hidden; }
+.conf-bar-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+.reasons-list { display: flex; flex-direction: column; gap: 8px; }
+.reason-item {
+  font-size: 12px; color: var(--text-2); display: flex; align-items: flex-start;
+  gap: 8px; padding: 6px 10px; background: rgba(0,0,0,0.2); border-radius: 10px;
+}
+
+/* charts */
+.chart-card {
+  background: rgba(18,22,36,0.5); backdrop-filter: blur(8px);
+  border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; margin-bottom: 24px;
+}
+.chart-header { display: flex; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+.chart-title { font-family: var(--ff-head); font-size: 1rem; font-weight: 500; }
+.chart-tabs { display: flex; gap: 6px; }
+.chart-tab {
+  background: var(--bg-2); border: 1px solid var(--border); color: var(--text-2);
+  border-radius: 30px; padding: 4px 12px; font-size: 10px; font-family: var(--ff-mono);
+  cursor: pointer;
+}
+.chart-tab.active { background: var(--bg-3); border-color: var(--border-s); color: var(--text-1); }
+.chart-container { position: relative; height: 280px; }
+canvas { max-width: 100%; }
+
+/* indicators grid */
+.indicators-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.ind-card {
+  background: rgba(18,22,36,0.5); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 12px 16px;
+}
+.ind-label { font-size: 9px; font-family: var(--ff-mono); text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-3); margin-bottom: 4px; }
+.ind-val { font-family: var(--ff-mono); font-size: 1rem; font-weight: 500; }
+.ind-desc { font-size: 10px; color: var(--text-3); margin-top: 4px; }
+
+/* sentiment grid */
+.sentiment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+@media (max-width: 700px) { .sentiment-grid { grid-template-columns: 1fr; } }
+.sent-bars { display: flex; flex-direction: column; gap: 12px; }
+.sent-row-label { display: flex; justify-content: space-between; font-size: 11px; font-family: var(--ff-mono); }
+.sent-bar { height: 6px; background: var(--bg-3); border-radius: 10px; overflow: hidden; }
+.sent-bar-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+
+.news-split-container {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+@media (max-width: 768px) { .news-split-container { grid-template-columns: 1fr; } }
+.news-column { display: flex; flex-direction: column; gap: 8px; }
+.news-column-title {
+  font-size: 12px; font-weight: 600; color: var(--accent);
+  border-bottom: 1px solid var(--border); padding-bottom: 6px;
+  text-transform: uppercase;
+}
+.news-list { display: flex; flex-direction: column; gap: 8px; }
+.news-item {
+  background: rgba(0,0,0,0.2); border-radius: var(--r); padding: 10px 12px;
+  border: 1px solid var(--border);
+}
+.news-item a { color: var(--text-1); text-decoration: none; font-size: 12px; font-weight: 500; }
+.news-item a:hover { color: var(--accent); }
+.news-item-meta { display: flex; justify-content: space-between; margin-top: 5px; font-size: 9px; }
+.news-item-source { color: var(--text-3); font-family: var(--ff-mono); }
+.news-item-sent { font-family: var(--ff-mono); }
+
+/* ml grid */
+.ml-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+@media (max-width: 700px) { .ml-grid { grid-template-columns: 1fr; } }
+.prob-bar-wrap { display: flex; flex-direction: column; gap: 14px; }
+.prob-row-header { display: flex; justify-content: space-between; font-size: 12px; }
+.prob-bar-bg { height: 8px; background: var(--bg-3); border-radius: 10px; overflow: hidden; }
+.prob-bar-fill { height: 100%; border-radius: 10px; transition: width 1.2s ease; }
+.feature-importance { display: flex; flex-direction: column; gap: 8px; }
+.fi-row { display: flex; align-items: center; gap: 10px; }
+.fi-name { font-family: var(--ff-mono); font-size: 10px; color: var(--text-2); width: 120px; }
+.fi-bar { flex: 1; height: 4px; background: var(--bg-3); border-radius: 6px; overflow: hidden; }
+.fi-bar-fill { height: 100%; background: var(--purple); transition: width 1s ease; }
+.fi-pct { font-family: var(--ff-mono); font-size: 9px; color: var(--text-3); min-width: 34px; text-align: right; }
+
+/* forecast grid */
+.forecast-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 16px; margin-top: 16px; margin-bottom: 8px;
+}
+@media (max-width: 900px) { .forecast-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 600px) { .forecast-grid { grid-template-columns: 1fr; } }
+.forecast-item {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 12px; text-align: center;
+}
+.forecast-horizon { font-family: var(--ff-mono); font-size: 10px; color: var(--text-3); text-transform: uppercase; }
+.forecast-val { font-size: 1.2rem; font-weight: 600; }
+.forecast-change { font-family: var(--ff-mono); font-size: 11px; font-weight: 600; }
+
+/* sections */
+.dashboard-section-group {
+  margin-bottom: 32px; border-radius: calc(var(--r) * 1.5);
+  background: rgba(255,255,255,0.01); padding: 20px;
+}
+.dashboard-section-group-title {
+  font-family: var(--ff-head); font-size: 1.3rem; font-weight: 500;
+  color: var(--accent); margin-bottom: 20px; display: flex;
+  align-items: center; gap: 8px; border-bottom: 1px solid var(--border-s);
+  padding-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;
+}
+.section-title { font-family: var(--ff-head); font-size: 1.2rem; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* disclaimer */
+.disclaimer {
+  text-align: center; padding: 28px 0; font-size: 11px; color: var(--text-3);
+  border-top: 1px solid var(--border); margin-top: 40px;
+}
+
+/* tooltips (original engine) */
+.tt-box {
+  position: fixed; z-index: 99999; background: var(--bg-3);
+  border: 1px solid var(--border-s); border-radius: 12px;
+  padding: 10px 14px; max-width: 280px; pointer-events: none;
+  opacity: 0; transform: translateY(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  font-family: var(--ff-body);
+}
+.tt-box.visible { opacity: 1; transform: translateY(0); }
+.tt-box-title {
+  font-family: var(--ff-mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--accent); margin-bottom: 4px;
+}
+.tt-box-body { font-size: 11px; color: var(--text-2); line-height: 1.4; }
+[data-tooltip] { cursor: help; }
+.card-label .tt-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 13px; height: 13px; border-radius: 50%; background: var(--bg-3);
+  border: 1px solid var(--border-s); font-size: 8px; color: var(--text-3);
+  margin-left: 4px; font-style: normal;
+}
+[data-tooltip]:hover .tt-icon { color: var(--accent); border-color: var(--accent); }
+
+/* utilities */
+.hidden { display: none !important; }
+.mono { font-family: var(--ff-mono); }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- tooltip box (same as original) -->
+<div class="tt-box" id="tt-box">
+  <div class="tt-box-title" id="tt-title"></div>
+  <div class="tt-box-body" id="tt-body"></div>
+</div>
+
+<div id="app">
+
+  <!-- HEADER (unchanged structure) -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📈</div>
+      <div class="logo-text">Stock<span>Sage</span> AI</div>
+    </div>
+    <div class="header-badge">Mirror Analytics</div>
+  </header>
+
+  <!-- SEARCH SECTION – no chips, minimal text -->
+  <section class="search-section" id="search-section">
+    <div class="search-eyebrow">XGBoost + VADER</div>
+    <h1 class="search-headline">
+      Intelligent Stock<br><em>Analysis & Prediction</em>
+    </h1>
+    <p class="search-sub">Enter ticker — global markets supported</p>
+    <div class="search-bar">
+      <input id="search-input" type="text" placeholder="e.g. AAPL, RELIANCE.NS, MSFT" autocomplete="off" />
+      <button id="search-btn" onclick="doSearch()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Analyse
+      </button>
+    </div>
+    <div class="period-selector">
+      <button class="period-btn" onclick="setPeriod('3mo',this)">3M</button>
+      <button class="period-btn active" onclick="setPeriod('1y',this)">1Y</button>
+      <button class="period-btn" onclick="setPeriod('2y',this)">2Y</button>
+      <button class="period-btn" onclick="setPeriod('5y',this)">5Y</button>
+    </div>
+    <!-- no quick chips -->
+  </section>
+
+  <!-- LOADING (exactly as original) -->
+  <div id="loading">
+    <div class="loader-ring"></div>
+    <div class="loader-steps">
+      <div class="loader-step" id="step-1">📡 Fetching market data…</div>
+      <div class="loader-step" id="step-2">🧮 Computing technical indicators…</div>
+      <div class="loader-step" id="step-3">📰 Collecting & analysing news sentiment…</div>
+      <div class="loader-step" id="step-4">🤖 Running XGBoost prediction model…</div>
+      <div class="loader-step" id="step-5">⚖️ Assessing risk & generating recommendation…</div>
+    </div>
+  </div>
+
+  <div id="error-box"></div>
+
+  <!-- DASHBOARD – all original IDs and classes preserved -->
+  <div id="dashboard">
+    <!-- Stock Header -->
+    <div class="stock-header">
+      <div class="stock-title">
+        <div class="stock-name" id="d-name">—</div>
+        <div class="stock-meta">
+          <span class="stock-ticker" id="d-ticker">—</span>
+          <span class="stock-sector" id="d-sector"></span>
+        </div>
+      </div>
+      <div class="stock-price-block">
+        <div class="stock-price" id="d-price">—</div>
+        <div class="stock-change" id="d-change"></div>
+      </div>
+    </div>
+
+    <!-- SECTION 1: PAST DATA -->
+    <div class="dashboard-section-group">
+      <div class="dashboard-section-group-title">📊 Historical Performance</div>
+      <div class="cards cards-4">
+        <div class="card" data-tooltip-title="RSI (14)" data-tooltip="Relative Strength Index – momentum. Above 70 = overbought, below 30 = oversold.">
+          <div class="card-label"><span class="card-label-dot" style="background:var(--blue)"></span>RSI (14)<i class="tt-icon">?</i></div>
+          <div class="card-value" id="d-rsi">—</div>
+          <div class="card-sub" id="d-rsi-state">—</div>
+        </div>
+        <div class="card" data-tooltip-title="MACD" data-tooltip="Moving Average Convergence Divergence. Bullish when MACD > signal line.">
+          <div class="card-label"><span class="card-label-dot" style="background:var(--purple)"></span>MACD<i class="tt-icon">?</i></div>
+          <div class="card-value" id="d-macd">—</div>
+          <div class="card-sub" id="d-macd-state">—</div>
+        </div>
+        <div class="card" data-tooltip-title="Volatility (Annualised)" data-tooltip="Annualised standard deviation of daily returns. Higher = more risk.">
+          <div class="card-label"><span class="card-label-dot" style="background:var(--teal)"></span>Volatility (Ann.)<i class="tt-icon">?</i></div>
+          <div class="card-value" id="d-vol">—</div>
+          <div class="card-sub" id="d-vol-sub">annualised</div>
+        </div>
+        <div class="card" data-tooltip-title="News Sentiment Score" data-tooltip="VADER compound score (−1 to +1). Positive = bullish bias.">
+          <div class="card-label"><span class="card-label-dot" style="background:var(--accent)"></span>Sentiment Score<i class="tt-icon">?</i></div>
+          <div class="card-value" id="d-sent">—</div>
+          <div class="card-sub" id="d-sent-sub">—</div>
+        </div>
+      </div>
+
+      <!-- Price Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Historical Price & Bollinger Bands</div>
+          <div class="chart-tabs">
+            <button class="chart-tab active" onclick="showOverlay('price',this)">Price + BB</button>
+            <button class="chart-tab" onclick="showOverlay('sma',this)">SMA / EMA</button>
+          </div>
+        </div>
+        <div class="chart-container"><canvas id="price-chart"></canvas></div>
+      </div>
+
+      <!-- RSI + MACD -->
+      <div class="cards cards-2" style="margin-bottom:24px">
+        <div class="chart-card" style="margin-bottom:0">
+          <div class="chart-header"><div class="chart-title">RSI (14)</div></div>
+          <div class="chart-container" style="height:200px"><canvas id="rsi-chart"></canvas></div>
+        </div>
+        <div class="chart-card" style="margin-bottom:0">
+          <div class="chart-header"><div class="chart-title">MACD</div></div>
+          <div class="chart-container" style="height:200px"><canvas id="macd-chart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Volume Chart -->
+      <div class="chart-card">
+        <div class="chart-header"><div class="chart-title">Volume</div></div>
+        <div class="chart-container" style="height:160px"><canvas id="vol-chart"></canvas></div>
+      </div>
+
+      <!-- Technical Indicators Snapshot -->
+      <div class="section-title">Technical Indicators Snapshot</div>
+      <div class="indicators-grid" id="ind-grid" style="margin-bottom:24px"></div>
+
+      <!-- Risk Assessment -->
+      <div class="section-title">Risk Profile</div>
+      <div class="cards cards-4" style="margin-bottom:24px">
+        <div class="card" style="grid-column:span 2" data-tooltip-title="Composite Risk Score" data-tooltip="0–100 score combining vol, drawdown, Sharpe.">
+          <div class="card-label">Risk Profile<i class="tt-icon">?</i></div>
+          <div class="gauge-wrap">
+            <div class="gauge-ring">
+              <svg viewBox="0 0 72 72" width="72" height="72">
+                <circle class="gauge-ring-bg" cx="36" cy="36" r="30"/>
+                <circle class="gauge-ring-fill" id="risk-gauge-fill" cx="36" cy="36" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5"/>
+              </svg>
+              <div class="gauge-label" id="risk-gauge-label">—</div>
+            </div>
+            <div class="gauge-info">
+              <div class="gauge-title" id="risk-cat">—</div>
+              <div class="gauge-cat" id="risk-cat-sub">Risk Category</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" data-tooltip-title="Maximum Drawdown" data-tooltip="Worst peak‑to‑trough loss.">
+          <div class="card-label">Max Drawdown<i class="tt-icon">?</i></div>
+          <div class="card-value" id="d-drawdown">—</div>
+          <div class="card-sub">worst peak→trough</div>
+        </div>
+        <div class="card" data-tooltip-title="Sharpe Ratio" data-tooltip="Risk‑adjusted return. >1 good, >2 excellent.">
+          <div class="card-label">Sharpe Ratio<i class="tt-icon">?</i></div>
+          <div class="card-value" id="d-sharpe">—</div>
+          <div class="card-sub">risk-adj. return</div>
+        </div>
+      </div>
+
+      <!-- Sentiment & News -->
+      <div class="section-title">Sentiment & News Feed</div>
+      <div class="sentiment-grid" style="margin-bottom:0">
+        <div class="card" data-tooltip-title="VADER Sentiment" data-tooltip="NLP sentiment analysis of recent headlines.">
+          <div class="card-label">Sentiment Breakdown<i class="tt-icon">?</i></div>
+          <div class="sent-bars" id="sent-bars">
+            <div class="sent-row">
+              <div class="sent-row-label"><span class="up">Positive</span><span id="sp-pos">—</span></div>
+              <div class="sent-bar"><div class="sent-bar-fill" id="sb-pos" style="width:0%;background:var(--green)"></div></div>
+            </div>
+            <div class="sent-row">
+              <div class="sent-row-label"><span class="flat">Neutral</span><span id="sp-neu">—</span></div>
+              <div class="sent-bar"><div class="sent-bar-fill" id="sb-neu" style="width:0%;background:var(--text-3)"></div></div>
+            </div>
+            <div class="sent-row">
+              <div class="sent-row-label"><span class="down">Negative</span><span id="sp-neg">—</span></div>
+              <div class="sent-bar"><div class="sent-bar-fill" id="sb-neg" style="width:0%;background:var(--red)"></div></div>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+            <div class="ind-label">Sentiment Summary</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:4px" id="sent-summary">—</div>
+          </div>
+        </div>
+        <div class="card" data-tooltip-title="Recent News" data-tooltip="Company and sector news from live feeds.">
+          <div class="card-label">Recent News Breakdown<i class="tt-icon">?</i></div>
+          <div class="news-split-container">
+            <div class="news-column">
+              <h4 class="news-column-title" id="company-news-title">🏢 Company News</h4>
+              <div class="news-list" id="company-news-list"></div>
+            </div>
+            <div class="news-column">
+              <h4 class="news-column-title" id="sector-news-title">🌐 Sector News</h4>
+              <div class="news-list" id="sector-news-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: ML CALCULATIONS -->
+    <div class="dashboard-section-group">
+      <div class="dashboard-section-group-title">🤖 ML Calculations & Reasoning</div>
+      <div class="ml-grid">
+        <div class="card" data-tooltip-title="XGBoost Probability" data-tooltip="Predicts probability of next‑day price direction.">
+          <div class="card-label">XGBoost Probability Forecast<i class="tt-icon">?</i></div>
+          <div class="prob-bar-wrap" id="prob-bars">
+            <div class="prob-row">
+              <div class="prob-row-header">
+                <span class="prob-label up">▲ Price Increase</span>
+                <span class="prob-val up" id="prob-up">—</span>
+              </div>
+              <div class="prob-bar-bg"><div class="prob-bar-fill" id="bar-up" style="width:0%;background:var(--green)"></div></div>
+            </div>
+            <div class="prob-row">
+              <div class="prob-row-header">
+                <span class="prob-label down">▼ Price Decrease</span>
+                <span class="prob-val down" id="prob-down">—</span>
+              </div>
+              <div class="prob-bar-bg"><div class="prob-bar-fill" id="bar-down" style="width:0%;background:var(--red)"></div></div>
+            </div>
+            <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+              <div style="font-family:var(--ff-mono);font-size:10px;color:var(--text-3);margin-bottom:4px">TREND SIGNAL</div>
+              <div id="ml-trend" style="font-family:var(--ff-head);font-size:1.3rem"></div>
+              <div id="ml-acc" style="font-size:11px;color:var(--text-3);margin-top:4px;font-family:var(--ff-mono)"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" data-tooltip-title="Feature Importance" data-tooltip="Which indicators drive the prediction.">
+          <div class="card-label">Top Feature Importance<i class="tt-icon">?</i></div>
+          <div class="feature-importance" id="feat-imp"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: RECOMMENDATION & FORECAST -->
+    <div class="dashboard-section-group" style="margin-bottom:0">
+      <div class="dashboard-section-group-title">📈 AI Recommendation & Projections</div>
+      <!-- Recommendation Card -->
+      <div class="rec-card" id="rec-card" style="margin-bottom:24px" data-tooltip-title="AI Recommendation" data-tooltip="Combined signal: ML 40% + Sentiment 25% + Technicals 25% + Risk 10%.">
+        <div class="rec-badge" id="rec-badge">—</div>
+        <div class="rec-details">
+          <div class="rec-conf-row">
+            <span class="rec-conf-label" data-tooltip-title="Confidence" data-tooltip="Agreement among all signals.">Confidence <i class="tt-icon" style="font-style:normal">?</i></span>
+            <div class="conf-bar"><div class="conf-bar-fill" id="rec-conf-bar" style="width:0%"></div></div>
+            <span class="rec-conf-val" id="rec-conf-val">—</span>
+          </div>
+          <div class="reasons-list" id="rec-reasons"></div>
+        </div>
+      </div>
+
+      <!-- Multi-Horizon Forecast -->
+      <div class="card" style="margin-bottom:0" data-tooltip-title="Multi‑Horizon" data-tooltip="Ridge regression forecasts for 1w to 1y.">
+        <div class="card-label">Multi-Horizon Price Projection<i class="tt-icon">?</i></div>
+        <div class="forecast-grid">
+          <div class="forecast-item"><div class="forecast-horizon">1 Week</div><div class="forecast-val" id="fore-1w-price">—</div><div class="forecast-change" id="fore-1w-pct">—</div></div>
+          <div class="forecast-item"><div class="forecast-horizon">1 Month</div><div class="forecast-val" id="fore-1m-price">—</div><div class="forecast-change" id="fore-1m-pct">—</div></div>
+          <div class="forecast-item"><div class="forecast-horizon">3 Months</div><div class="forecast-val" id="fore-3m-price">—</div><div class="forecast-change" id="fore-3m-pct">—</div></div>
+          <div class="forecast-item"><div class="forecast-horizon">6 Months</div><div class="forecast-val" id="fore-6m-price">—</div><div class="forecast-change" id="fore-6m-pct">—</div></div>
+          <div class="forecast-item"><div class="forecast-horizon">1 Year</div><div class="forecast-val" id="fore-1y-price">—</div><div class="forecast-change" id="fore-1y-pct">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ <strong>Disclaimer:</strong> Academic project – not financial advice. Past performance does not guarantee future results.
+    </div>
+  </div><!-- /dashboard -->
+</div><!-- /app -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   COMPLETE ORIGINAL JAVASCRIPT – UNCHANGED
+   (all functions, charts, tooltips, API calls identical)
+═══════════════════════════════════════════════════════ */
+const API = 'http://localhost:5000';
+let selectedPeriod = '1y';
+let priceChart, rsiChart, macdChart, volChart;
+let currentChartData = null;
+
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+function setPeriod(p, el) {
+  selectedPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function quickSearch(ticker) {  // kept for compatibility (no chips call it)
+  document.getElementById('search-input').value = ticker;
+  doSearch(ticker);
+}
+
+async function doSearch(forceTicker) {
+  const query = forceTicker || document.getElementById('search-input').value.trim();
+  if (!query) return;
+  showLoading();
+  try {
+    activateStep(1);
+    const res1 = await fetch(`${API}/api/search?q=${encodeURIComponent(query)}`);
+    const info = await res1.json();
+    const ticker = info.ticker || query.toUpperCase();
+    activateStep(2); await delay(300);
+    activateStep(3); await delay(400);
+    activateStep(4); await delay(300);
+    activateStep(5);
+    const res2 = await fetch(`${API}/api/analyze?ticker=${encodeURIComponent(ticker)}&period=${selectedPeriod}`);
+    const data = await res2.json();
+    if (data.error) throw new Error(data.error);
+    hideLoading();
+    renderDashboard(data);
+  } catch (err) {
+    showError(`Connection error: ${err.message}. Make sure app.py is running on port 5000.`);
+  }
+}
+
+function renderDashboard(d) {
+  const snap = d.snapshot;
+  const rec  = d.recommendation;
+  const ml   = d.ml;
+  const risk = d.risk;
+  const sent = d.sentiment;
+  const curr = d.currency || '';
+
+  $('d-name').textContent   = d.name;
+  $('d-ticker').textContent = d.ticker;
+  const sectorTxt = [d.sector, d.exchange].filter(Boolean).join(' · ');
+  $('d-sector').textContent = sectorTxt;
+
+  const fmt = v => v == null ? '—' : v.toLocaleString('en-IN', {maximumFractionDigits:2});
+  $('d-price').textContent = `${fmt(snap.price)} ${curr}`;
+  const chg = snap.change;
+  const chPct = snap.change_pct;
+  const chEl = $('d-change');
+  chEl.textContent = `${chg >= 0 ? '+' : ''}${fmt(chg)} (${chg >= 0 ? '+' : ''}${chPct?.toFixed(2)}%)`;
+  chEl.className = `stock-change ${chg > 0 ? 'up' : chg < 0 ? 'down' : 'flat'}`;
+
+  const rsiVal = snap.rsi;
+  $('d-rsi').textContent = rsiVal?.toFixed(1) ?? '—';
+  $('d-rsi').className = `card-value ${rsiVal > 70 ? 'down' : rsiVal < 30 ? 'up' : 'flat'}`;
+  $('d-rsi-state').textContent = rsiVal > 70 ? 'Overbought' : rsiVal < 30 ? 'Oversold' : 'Neutral';
+
+  const macdVal = snap.macd;
+  const macdSig = snap.macd_signal;
+  $('d-macd').textContent = macdVal?.toFixed(3) ?? '—';
+  $('d-macd').className = `card-value ${macdVal > macdSig ? 'up' : 'down'}`;
+  $('d-macd-state').textContent = macdVal > macdSig ? 'Bullish crossover' : 'Bearish crossover';
+
+  $('d-vol').textContent = snap.volatility != null ? `${(snap.volatility * 100).toFixed(1)}%` : '—';
+
+  const sScore = sent.avg_score;
+  $('d-sent').textContent = sScore.toFixed(3);
+  $('d-sent').className = `card-value ${sScore > 0.05 ? 'up' : sScore < -0.05 ? 'down' : 'flat'}`;
+  $('d-sent-sub').textContent = `${sent.article_count} articles`;
+
+  const badge = $('rec-badge');
+  badge.className = `rec-badge ${rec.action}`;
+  badge.innerHTML = `${rec.action}<div class="rec-badge-sub">Recommendation</div>`;
+  const confColor = rec.action === 'BUY' ? 'var(--green)' : rec.action === 'SELL' ? 'var(--red)' : 'var(--accent)';
+  $('rec-conf-bar').style.cssText = `width:${rec.confidence}%;background:${confColor}`;
+  $('rec-conf-val').textContent   = `${rec.confidence}%`;
+  $('rec-conf-val').style.color   = confColor;
+
+  $('rec-reasons').innerHTML = rec.reasons.map(r => {
+    let i = r.toLowerCase().includes('ml') ? '🤖' : r.toLowerCase().includes('sentiment') ? '📰' : r.toLowerCase().includes('rsi') ? '🔄' : r.toLowerCase().includes('macd') ? '📊' : r.toLowerCase().includes('sma') ? '📏' : r.toLowerCase().includes('risk') ? '⚖️' : '🔍';
+    return `<div class="reason-item"><span class="reason-icon">${i}</span><span>${r}</span></div>`;
+  }).join('');
+
+  const upPct   = (ml.prob_increase * 100).toFixed(1);
+  const downPct = (ml.prob_decrease * 100).toFixed(1);
+  $('prob-up').textContent   = `${upPct}%`;
+  $('prob-down').textContent = `${downPct}%`;
+  setTimeout(() => {
+    $('bar-up').style.width   = `${upPct}%`;
+    $('bar-down').style.width = `${downPct}%`;
+  }, 200);
+
+  const trendColor = ml.predicted_trend === 'BULLISH' ? 'var(--green)' : ml.predicted_trend === 'BEARISH' ? 'var(--red)' : 'var(--accent)';
+  $('ml-trend').textContent = `${ml.predicted_trend === 'BULLISH' ? '▲' : ml.predicted_trend === 'BEARISH' ? '▼' : '◆'} ${ml.predicted_trend}`;
+  $('ml-trend').style.color = trendColor;
+  $('ml-acc').textContent   = ml.model_accuracy ? `Model accuracy: ${(ml.model_accuracy*100).toFixed(1)}%` : ml.note || '';
+
+  if (ml.top_features && ml.top_features.length) {
+    const maxFi = ml.top_features[0][1];
+    $('feat-imp').innerHTML = ml.top_features.map(([name, val]) => `
+      <div class="fi-row">
+        <div class="fi-name">${name}</div>
+        <div class="fi-bar"><div class="fi-bar-fill" style="width:${(val/maxFi*100).toFixed(0)}%"></div></div>
+        <div class="fi-pct">${(val*100).toFixed(1)}%</div>
+      </div>`).join('');
+  }
+
+  const rs = risk.risk_score;
+  const circ = 188.5;
+  const offset = circ - (rs / 100) * circ;
+  const riskColor = risk.risk_category === 'LOW' ? 'var(--green)' : risk.risk_category === 'MEDIUM' ? 'var(--accent)' : 'var(--red)';
+  const gf = $('risk-gauge-fill');
+  gf.style.stroke = riskColor;
+  setTimeout(() => { gf.style.strokeDashoffset = offset; }, 200);
+  $('risk-gauge-label').textContent = rs.toFixed(0);
+  $('risk-gauge-label').style.color  = riskColor;
+  $('risk-cat').textContent      = risk.risk_category;
+  $('risk-cat').style.color      = riskColor;
+  $('d-drawdown').textContent    = `${(risk.max_drawdown * 100).toFixed(1)}%`;
+  $('d-drawdown').className      = 'card-value down';
+  const sh = risk.sharpe_ratio;
+  $('d-sharpe').textContent      = sh.toFixed(2);
+  $('d-sharpe').className        = `card-value ${sh > 1 ? 'up' : sh < 0 ? 'down' : 'flat'}`;
+
+  setTimeout(() => {
+    $('sb-pos').style.width = `${sent.positive_ratio * 100}%`;
+    $('sb-neu').style.width = `${sent.neutral_ratio  * 100}%`;
+    $('sb-neg').style.width = `${sent.negative_ratio * 100}%`;
+  }, 200);
+  $('sp-pos').textContent = `${(sent.positive_ratio * 100).toFixed(0)}%`;
+  $('sp-neu').textContent = `${(sent.neutral_ratio  * 100).toFixed(0)}%`;
+  $('sp-neg').textContent = `${(sent.negative_ratio * 100).toFixed(0)}%`;
+  $('sent-summary').textContent = sent.summary;
+
+  function renderNewsSection(containerId, articles, fallbackName, fallbackQuery) {
+    const listEl = $(containerId);
+    if (!listEl) return;
+    if (articles && articles.length > 0) {
+      listEl.innerHTML = articles.slice(0, 5).map(a => {
+        const vs = vader_score_approx(a.title);
+        const sColor = vs > 0.05 ? 'var(--green)' : vs < -0.05 ? 'var(--red)' : 'var(--text-3)';
+        const sLabel = vs > 0.05 ? '▲ Positive' : vs < -0.05 ? '▼ Negative' : '◆ Neutral';
+        const href   = a.url ? `href="${a.url}" target="_blank" rel="noopener"` : '';
+        const timeStr = a.time ? (typeof a.time === 'number' ? new Date(a.time * 1000).toLocaleDateString('en-IN', {day:'2-digit',month:'short'}) : String(a.time).slice(0,10)) : '';
+        return `<div class="news-item">
+          <a ${href}>${escHtml(a.title)}</a>
+          <div class="news-item-meta">
+            <span class="news-item-source">${escHtml(a.source || '')}${timeStr ? ' · ' + timeStr : ''}</span>
+            <span class="news-item-sent" style="color:${sColor}">${sLabel}</span>
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      const gq = encodeURIComponent(fallbackQuery);
+      const gUrl = `https://www.google.com/search?q=${gq}&tbm=nws`;
+      listEl.innerHTML = `<div style="text-align:center;padding:10px 0"><div style="font-size:18px;margin-bottom:4px">📭</div><div style="color:var(--text-3);font-size:11px">No articles available.</div><a href="${gUrl}" target="_blank" style="display:inline-block;margin-top:8px;font-size:10px;color:var(--accent);">Search Google News</a></div>`;
+    }
+  }
+
+  const sectorName = d.industry || d.sector || 'Market';
+  $('sector-news-title').textContent = `🌐 Sector News (${sectorName})`;
+  const companyArticles = (sent.company && sent.company.articles) || [];
+  const sectorArticles = (sent.sector && sent.sector.articles) || [];
+  renderNewsSection('company-news-list', companyArticles, d.name, d.name + ' stock news');
+  renderNewsSection('sector-news-list', sectorArticles, sectorName, sectorName + ' industry news');
+
+  const inds = [
+    { label:'RSI (14)', val: snap.rsi?.toFixed(1), desc: snap.rsi > 70 ? 'Overbought ⚠️' : snap.rsi < 30 ? 'Oversold 🟢' : 'Normal range', tt: 'Relative Strength Index 0–100. Above 70 = overbought, below 30 = oversold.' },
+    { label:'MACD', val: snap.macd?.toFixed(3), desc: snap.macd > snap.macd_signal ? 'Bullish signal' : 'Bearish signal', tt: 'MACD = 12‑day EMA − 26‑day EMA.' },
+    { label:'MACD Signal', val: snap.macd_signal?.toFixed(3), desc: '', tt: '9‑day EMA of MACD line – trigger for trades.' },
+    { label:'SMA 20', val: snap.sma20 != null ? fmt(snap.sma20) : '—', desc: '20-day moving avg', tt: 'Short‑term trend line.' },
+    { label:'SMA 50', val: snap.sma50 != null ? fmt(snap.sma50) : '—', desc: '50-day moving avg', tt: 'Medium‑term trend level.' },
+    { label:'BB Upper', val: snap.bb_upper != null ? fmt(snap.bb_upper) : '—', desc: 'Upper Bollinger Band', tt: 'SMA20 + 2×std dev.' },
+    { label:'BB Lower', val: snap.bb_lower != null ? fmt(snap.bb_lower) : '—', desc: 'Lower Bollinger Band', tt: 'SMA20 − 2×std dev.' },
+    { label:'Annual Volatility', val: snap.volatility != null ? `${(snap.volatility*100).toFixed(1)}%` : '—', desc: '', tt: 'Annualised standard deviation of returns.' },
+    { label:'Avg Annual Return', val: risk.avg_annual_return != null ? `${(risk.avg_annual_return*100).toFixed(1)}%` : '—', desc: '', tt: 'Compound annual return.' },
+    { label:'Max Drawdown', val: `${(risk.max_drawdown*100).toFixed(1)}%`, desc: 'peak-to-trough decline', tt: 'Worst loss from a peak.' },
+    { label:'Sharpe Ratio', val: risk.sharpe_ratio?.toFixed(2), desc: risk.sharpe_ratio > 1 ? 'Good' : risk.sharpe_ratio < 0 ? 'Negative' : 'Below avg', tt: 'Risk‑adjusted return.' },
+    { label:'Risk Score', val: `${risk.risk_score?.toFixed(0)}/100`, desc: `${risk.risk_category} risk`, tt: 'Composite risk 0–100.' },
+  ];
+  $('ind-grid').innerHTML = inds.map(i => `
+    <div class="ind-card" ${i.tt ? `data-tooltip-title="${i.label}" data-tooltip="${i.tt}"` : ''}>
+      <div class="ind-label">${i.label}${i.tt ? ' <i class="tt-icon">?</i>' : ''}</div>
+      <div class="ind-val">${i.val ?? '—'}</div>
+      ${i.desc ? `<div class="ind-desc">${i.desc}</div>` : ''}
+    </div>`).join('');
+
+  currentChartData = d.chart;
+  renderPriceChart(d.chart, 'price');
+  renderRSIChart(d.chart);
+  renderMACDChart(d.chart);
+  renderVolChart(d.chart);
+
+  if (d.forecast) {
+    const horizons = ['1w', '1m', '3m', '6m', '1y'];
+    horizons.forEach(h => {
+      const f = d.forecast[h];
+      const prEl = $(`fore-${h}-price`);
+      const pctEl = $(`fore-${h}-pct`);
+      if (prEl && pctEl && f) {
+        prEl.textContent = `${fmt(f.price)} ${curr}`;
+        const pct = f.pct_change;
+        pctEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+        pctEl.className = `forecast-change ${pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat'}`;
+      }
+    });
+  }
+
+  $('dashboard').style.display = 'block';
+  $('search-section').style.marginBottom = '0';
+  setTimeout(() => $('dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+  scales: {
+    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7A8AB0', maxTicksLimit: 8, font: { family: 'DM Mono', size: 10 } } },
+    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7A8AB0', font: { family: 'DM Mono', size: 10 } } }
+  }
+};
+
+function destroyChart(c) { if (c) c.destroy(); }
+
+function renderPriceChart(cd, mode) {
+  destroyChart(priceChart);
+  const ctx = document.getElementById('price-chart').getContext('2d');
+  const datasets = [{
+    label: 'Close', data: cd.close, borderColor: '#A0C8F0', borderWidth: 1.8,
+    pointRadius: 0, tension: 0.2, fill: false, order: 1,
+  }];
+  if (mode === 'price') {
+    datasets.push(
+      { label:'BB Upper', data:cd.bb_upper, borderColor:'rgba(122,158,192,0.5)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false, order:2 },
+      { label:'BB Lower', data:cd.bb_lower, borderColor:'rgba(122,158,192,0.5)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false, order:3 },
+    );
+  } else {
+    datasets.push(
+      { label:'SMA 20', data:cd.sma20, borderColor:'#6FCF97', borderWidth:1.5, pointRadius:0, fill:false, order:2 },
+      { label:'SMA 50', data:cd.sma50, borderColor:'#E67A6F', borderWidth:1.5, pointRadius:0, fill:false, order:3 },
+    );
+  }
+  priceChart = new Chart(ctx, {
+    type: 'line', data: { labels: cd.dates, datasets },
+    options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: true, labels: { color:'#B0C8F0', font:{ family:'DM Mono', size:10 }, boxWidth:16 } } } }
+  });
+}
+
+function renderRSIChart(cd) {
+  destroyChart(rsiChart);
+  const ctx = document.getElementById('rsi-chart').getContext('2d');
+  rsiChart = new Chart(ctx, {
+    type: 'line', data: { labels: cd.dates, datasets: [{ label:'RSI', data:cd.rsi, borderColor:'#D0B860', borderWidth:1.5, pointRadius:0, fill:false, tension:0.3 }] },
+    options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min:0, max:100, ticks: { ...chartDefaults.scales.y.ticks, callback: v => v } } }, plugins: { ...chartDefaults.plugins, annotation: { annotations: { ob: { type:'line', yMin:70, yMax:70, borderColor:'rgba(230,122,111,0.4)', borderWidth:1, borderDash:[4,4] }, os: { type:'line', yMin:30, yMax:30, borderColor:'rgba(111,207,151,0.4)', borderWidth:1, borderDash:[4,4] } } } } }
+  });
+}
+
+function renderMACDChart(cd) {
+  destroyChart(macdChart);
+  const ctx = document.getElementById('macd-chart').getContext('2d');
+  macdChart = new Chart(ctx, {
+    type: 'bar', data: { labels: cd.dates, datasets: [
+      { label:'MACD Hist', data:cd.macd_hist, type:'bar', backgroundColor: cd.macd_hist.map(v => v >= 0 ? 'rgba(111,207,151,0.5)' : 'rgba(230,122,111,0.5)'), borderWidth:0, order:3 },
+      { label:'MACD', data:cd.macd, type:'line', borderColor:'#D0B860', borderWidth:1.5, pointRadius:0, fill:false, order:1 },
+      { label:'Signal', data:cd.macd_signal, type:'line', borderColor:'rgba(160,136,192,0.8)', borderWidth:1.5, pointRadius:0, fill:false, order:2 },
+    ] }, options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display:true, labels:{ color:'#B0C8F0', font:{ family:'DM Mono', size:10 }, boxWidth:14 } } } }
+  });
+}
+
+function renderVolChart(cd) {
+  destroyChart(volChart);
+  const ctx = document.getElementById('vol-chart').getContext('2d');
+  volChart = new Chart(ctx, {
+    type: 'bar', data: { labels: cd.dates, datasets: [{ label:'Volume', data:cd.volume, backgroundColor:'rgba(122,158,192,0.4)', borderWidth:0 }] },
+    options: chartDefaults
+  });
+}
+
+function showOverlay(mode, el) {
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if (currentChartData) renderPriceChart(currentChartData, mode);
+}
+
+function showLoading() {
+  $('error-box').style.display = 'none';
+  $('dashboard').style.display = 'none';
+  $('loading').style.display = 'flex';
+  $('search-btn').textContent = 'Analysing…';
+  $('search-btn').disabled = true;
+  document.querySelectorAll('.loader-step').forEach(s => { s.classList.remove('active'); s.style.animation = 'none'; });
+  activateStep(0);
+}
+
+function hideLoading() {
+  $('loading').style.display = 'none';
+  $('search-btn').innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Analyse`;
+  $('search-btn').disabled = false;
+}
+
+function showError(msg) {
+  hideLoading();
+  const eb = $('error-box');
+  eb.style.display = 'block';
+  eb.textContent = `⚠ ${msg}`;
+}
+
+function activateStep(n) {
+  for (let i = 1; i <= n; i++) {
+    const el = $(`step-${i}`);
+    if (el) { el.classList.add('active'); el.style.animation = ''; }
+  }
+}
+
+function $(id) { return document.getElementById(id); }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function vader_score_approx(text) {
+  const pos = ['strong','gain','rise','up','growth','positive','profit','beat','surge','record','high','outperform'];
+  const neg = ['weak','loss','fall','down','decline','negative','miss','cut','risk','concern','warning','low'];
+  let s = 0;
+  const t = text.toLowerCase();
+  pos.forEach(w => { if (t.includes(w)) s += 0.15; });
+  neg.forEach(w => { if (t.includes(w)) s -= 0.15; });
+  return Math.max(-1, Math.min(1, s));
+}
+
+// Tooltip engine (identical)
+(function initTooltips() {
+  const box   = document.getElementById('tt-box');
+  const title = document.getElementById('tt-title');
+  const body  = document.getElementById('tt-body');
+  let hovered = null;
+  let showTimer = null;
+  const OFFSET_X = 16, OFFSET_Y = 12;
+  function positionBox(e) {
+    let x = e.clientX + OFFSET_X, y = e.clientY + OFFSET_Y;
+    const bw = box.offsetWidth || 280, bh = box.offsetHeight || 70;
+    if (x + bw > window.innerWidth - 8) x = e.clientX - bw - OFFSET_X;
+    if (y + bh > window.innerHeight - 8) y = e.clientY - bh - OFFSET_Y;
+    box.style.left = x + 'px'; box.style.top = y + 'px';
+  }
+  function showTip(el, e) {
+    title.textContent = el.dataset.tooltipTitle || '';
+    body.textContent = el.dataset.tooltip || '';
+    positionBox(e); box.classList.add('visible');
+  }
+  function hideTip() { box.classList.remove('visible'); hovered = null; }
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tooltip]');
+    if (!el) return;
+    if (el === hovered) return;
+    hovered = el; clearTimeout(showTimer);
+    showTimer = setTimeout(() => showTip(el, e), 120);
+  });
+  document.addEventListener('mousemove', e => { if (hovered) positionBox(e); });
+  document.addEventListener('mouseout', e => {
+    const el = e.target.closest('[data-tooltip]');
+    if (!el) return;
+    const to = e.relatedTarget;
+    if (to && el.contains(to)) return;
+    clearTimeout(showTimer); hideTip();
+  });
+  document.addEventListener('click', () => { clearTimeout(showTimer); hideTip(); });
+})();
+</script>
+</body>
+</html>

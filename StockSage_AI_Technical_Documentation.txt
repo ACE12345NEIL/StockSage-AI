@@ -1,0 +1,392 @@
+StockSage AI – Technical Documentation
+======================================
+
+Overview
+--------
+StockSage AI is an intelligent stock analysis platform that combines technical analysis, news sentiment analysis, machine learning, risk assessment, and recommendation logic to generate actionable market insights. The system integrates historical market data, real-time news feeds, predictive models, and explainable scoring mechanisms into a unified analysis pipeline.
+
+1. Data Acquisition
+-------------------
+
+1.1 Historical Market Data
+- Source: Yahoo Finance (yfinance)
+- Configurable lookback period (up to 5 years)
+- Data fields:
+  • Open
+  • High
+  • Low
+  • Close
+  • Volume
+- Auto-adjusted for stock splits and dividends
+
+1.2 News Collection
+Company News:
+- Retrieved using yfinance Ticker.news
+- Typically provides up to 15 recent articles
+
+Sector News:
+- Retrieved through Google News RSS feeds
+- Query format: "<industry> industry news"
+- Supports regional targeting (India or Global)
+
+Sentiment Weighting:
+- Company sentiment: 60%
+- Sector sentiment: 40%
+- If only one source is available, it is used directly
+
+2. Technical Analysis Engine
+----------------------------
+
+2.1 Moving Averages
+Simple Moving Averages (SMA)
+- SMA20: 20-day average price
+- SMA50: 50-day average price
+
+Interpretation:
+- Price above SMA indicates bullish strength
+- Price below SMA indicates bearish pressure
+
+Exponential Moving Averages (EMA)
+- EMA12
+- EMA26
+
+EMAs react faster to recent price movements and serve as the foundation for MACD calculations.
+
+2.2 Relative Strength Index (RSI)
+Period: 14 days
+
+Interpretation:
+- RSI > 70: Overbought
+- RSI < 30: Oversold
+
+RSI helps identify potential trend reversals and momentum exhaustion.
+
+2.3 MACD (Moving Average Convergence Divergence)
+Components:
+- MACD Line = EMA12 − EMA26
+- Signal Line = 9-period EMA of MACD
+- Histogram = MACD − Signal
+
+Interpretation:
+- MACD above Signal: Bullish momentum
+- MACD below Signal: Bearish momentum
+- Histogram expansion indicates strengthening momentum
+
+2.4 Bollinger Bands
+Settings:
+- 20-day moving average
+- 2 standard deviations
+
+Components:
+- Upper Band
+- Middle Band (SMA20)
+- Lower Band
+
+Derived Metrics:
+- BB_Width: Volatility measurement
+- BB_Position: Relative price position inside bands
+
+Interpretation:
+- Upper Band touch: Potential overextension
+- Lower Band touch: Potential oversold condition
+- Band squeeze: Possible breakout setup
+
+2.5 Volume Analysis
+Metrics:
+- Volume SMA20
+- Volume Ratio
+
+Volume Ratio:
+Volume / Average Volume
+
+Interpretation:
+- Above 1.0 = higher-than-average participation
+- Confirms price movements and breakouts
+
+2.6 Volatility Metrics
+Daily Return:
+(Current Close / Previous Close) − 1
+
+Annualized Volatility:
+20-day standard deviation × √252
+
+2.7 Trend Strength Metrics
+- Price vs SMA20
+- Price vs SMA50
+
+Positive values indicate bullish positioning relative to trend averages.
+
+2.8 Intraday Range
+High-Low Range:
+(High − Low) / Close
+
+Measures daily price fluctuation intensity.
+
+3. Sentiment Analysis
+---------------------
+
+Framework:
+- VADER (Valence Aware Dictionary and sEntiment Reasoner)
+
+Input Sources:
+- News headlines
+- News summaries
+
+Output:
+- Compound score between -1 and +1
+
+Classification:
+- Positive: ≥ 0.05
+- Neutral: Between -0.05 and 0.05
+- Negative: ≤ -0.05
+
+Aggregated Metrics:
+- Average sentiment score
+- Positive article ratio
+- Negative article ratio
+- Neutral article ratio
+- News impact score
+
+Combined Sentiment:
+0.6 × Company Sentiment + 0.4 × Sector Sentiment
+
+4. Machine Learning Architecture
+--------------------------------
+
+4.1 XGBoost Classifier
+Purpose:
+Predict next-day price direction.
+
+Target:
+1 = Price expected to rise
+0 = Price expected to fall
+
+Feature Categories:
+- Momentum indicators
+- Trend indicators
+- Volatility indicators
+- Volume metrics
+- EMA features
+- Live sentiment features
+
+Preprocessing:
+- Missing value removal
+- StandardScaler normalization
+
+Model Configuration:
+- 200 estimators
+- Max depth: 4
+- Learning rate: 0.05
+- Subsample: 0.8
+- Column sample: 0.8
+
+Training Strategy:
+- 85% training data
+- 15% validation data
+- Time-series split (no shuffling)
+
+Outputs:
+- Probability of Increase
+- Probability of Decrease
+- Predicted Trend
+- Confidence Score
+- Feature Importance Rankings
+
+Trend Labels:
+- Bullish: Probability > 55%
+- Bearish: Probability > 55%
+- Neutral: Otherwise
+
+4.2 Ridge Regression Forecasting
+Purpose:
+Multi-horizon price prediction.
+
+Forecast Horizons:
+- 1 Week (5 trading days)
+- 1 Month (21 trading days)
+- 3 Months (63 trading days)
+- 6 Months (126 trading days)
+- 1 Year (252 trading days)
+
+Target:
+Future percentage return relative to current price.
+
+Advantages:
+- Stable forecasts
+- Reduced overfitting
+- Effective with correlated technical indicators
+
+Fallback Logic:
+If fewer than 40 valid training samples exist:
+- Use recent 10-day return
+- Scale proportionally by horizon
+- Clamp forecasts within ±20%
+
+Outputs:
+- Expected percentage change
+- Forecast price
+- Trend direction
+
+5. Risk Assessment Engine
+-------------------------
+
+Risk Score Range:
+0–100
+
+Components:
+
+A. Annualized Volatility
+Weight Contribution: 50%
+
+B. Maximum Drawdown
+Weight Contribution: 30%
+
+C. Sharpe Ratio Penalty
+Weight Contribution: Remaining adjustment
+
+Risk-Free Rate:
+- India: 6%
+- Global: 4%
+
+Final Risk Score:
+Volatility Score +
+Drawdown Score +
+Sharpe Penalty
+
+Risk Categories:
+- Low Risk: < 30
+- Medium Risk: 30–59
+- High Risk: ≥ 60
+
+6. Recommendation Engine
+------------------------
+
+The recommendation engine combines multiple independent signals into a single decision score.
+
+Weight Allocation:
+- Machine Learning Signal: 40%
+- Sentiment Signal: 25%
+- Technical Signal: 25%
+- Risk Adjustment: 10%
+
+Technical Signal Factors:
+- RSI condition
+- MACD crossover
+- Price relative to SMA50
+
+Recommendation Thresholds:
+- BUY  : Score > 0.15
+- HOLD : -0.15 to 0.15
+- SELL : Score < -0.15
+
+Confidence Calculation:
+Confidence = min(|Score| × 2, 1.0)
+
+Explanations:
+The engine generates human-readable reasoning, including:
+- Trend strength
+- Sentiment influence
+- Risk category
+- Technical indicator signals
+- Machine learning prediction outcome
+
+7. Dashboard & Visualization Layer
+----------------------------------
+
+Frontend Framework:
+- Flask Backend
+- Chart.js Visualization
+
+Available Charts:
+- Price & Bollinger Bands
+- SMA20 & SMA50
+- RSI
+- MACD
+- Volume
+
+Interactive Components:
+- Risk gauge
+- Sentiment progress bars
+- ML probability indicators
+- Feature importance chart
+- Multi-horizon forecast cards
+- Tooltips and metric explanations
+
+8. Historical News Dataset Support
+----------------------------------
+
+Optional Dataset:
+data/combined_news.csv
+
+Supported Fields:
+- Date
+- Title
+- Description
+- Categories
+- Keywords
+- Relevance Score
+- Impact Tier
+- Negation Flag
+
+Purpose:
+- Offline analysis
+- Future model training
+- Backtesting experiments
+
+Not used in live API predictions.
+
+9. Reliability & Error Handling
+-------------------------------
+
+System Behavior:
+- Missing news → Neutral sentiment
+- Insufficient ML data → Neutral probabilities
+- Insufficient forecast data → Fallback prediction logic
+- NaN/Infinite values → Sanitized before API response
+
+Production Behavior:
+- API failures return structured error responses
+- Debug mode disabled in production deployments
+
+10. Performance Characteristics
+-------------------------------
+
+Current Design:
+- Indicators calculated per request
+- No caching layer
+- Synchronous sentiment processing
+- On-demand model training
+
+Typical Runtime:
+- XGBoost training: ~0.2–0.5 seconds for ~1000 records
+
+Frontend:
+- Chart.js canvas rendering
+- Efficient handling of large datasets
+
+11. Future Enhancements
+-----------------------
+
+Potential Improvements:
+- Prediction history database
+- Automated backtesting system
+- Model ensembles (LSTM, Random Forest, Transformer)
+- Alternative data integration
+- Social media sentiment
+- Earnings event analysis
+- Docker deployment
+- Gunicorn + Nginx production setup
+- Distributed caching
+
+12. Conclusion
+--------------
+
+StockSage AI provides a complete, explainable stock-analysis workflow that combines:
+- Technical Analysis
+- News Sentiment Analysis
+- Machine Learning Prediction
+- Multi-Horizon Forecasting
+- Risk Evaluation
+- Recommendation Generation
+
+The platform is designed to remain transparent, interpretable, and extensible, making it suitable for academic projects, portfolio demonstrations, research experiments, and advanced hobbyist trading applications.
